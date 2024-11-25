@@ -12,11 +12,13 @@ import {
   Divider,
   Container,
   CircularProgress,
+  TextField,
 } from '@mui/material';
 
 const Dashboard = () => {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState(''); // New state for filter input
 
   useEffect(() => {
     axios
@@ -30,6 +32,11 @@ const Dashboard = () => {
         setLoading(false);
       });
   }, []);
+
+  // Filter cards based on the card ID
+  const filteredCards = cards.filter((card) =>
+    card.id.toLowerCase().includes(filter.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -58,9 +65,20 @@ const Dashboard = () => {
         </Button>
       </Box>
 
+      {/* Filter Section */}
+      <Box sx={{ textAlign: 'center', mb: 3 }}>
+        <TextField
+          label="Filter by Card ID"
+          variant="outlined"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)} // Update filter state
+          fullWidth
+        />
+      </Box>
+
       {/* List of Cards */}
       <Grid container spacing={3}>
-        {cards.map((card) => (
+        {filteredCards.map((card) => (
           <Grid item xs={12} sm={6} md={4} key={card.id}>
             <Card elevation={3}>
               <CardMedia
