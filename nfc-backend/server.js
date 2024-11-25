@@ -119,6 +119,23 @@ app.get('/redirect/:cardId', async (req, res) => {
   }
 });
 
+// 5. Get a Single Card by ID
+app.get('/cards/:cardId', async (req, res) => {
+  const { cardId } = req.params;
+
+  try {
+    const card = await Card.findOne({ id: cardId });
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+    res.json(card);
+  } catch (error) {
+    console.error('Error fetching card:', error);
+    res.status(500).json({ error: 'Failed to fetch card' });
+  }
+});
+
+
 // Start Server
 const PORT = 3000;
 app.listen(PORT, () => {

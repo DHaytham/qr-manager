@@ -1,73 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-  List,
-  ListItem,
-  ListItemText,
-  Container,
-  CircularProgress,
-  Grid,
-  Card,
-  CardContent,
-} from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Box, Button, TextField, Typography, Container, CircularProgress } from '@mui/material';
 
 const UpdateCard = () => {
-  const [cards, setCards] = useState([]); // All cards
-  const [filteredCards, setFilteredCards] = useState([]); // Cards after filtering
-  const [selectedCard, setSelectedCard] = useState(null); // Selected card for update
-  const [newCustomerUrl, setNewCustomerUrl] = useState(''); // New URL for the card
+  const { cardId } = useParams(); // Get the card ID from the URL params
+  const navigate = useNavigate(); // Use useNavigate to redirect after update
+
+  const [card, setCard] = useState(null);
+  const [newCustomerUrl, setNewCustomerUrl] = useState('');
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState(''); // Feedback message
-  const [searchTerm, setSearchTerm] = useState(''); // Search term for filtering
+  const [message, setMessage] = useState('');
 
-  // Fetch all cards from the backend
-  const fetchCards = async () => {
-    try {
-      const response = await fetch('http://localhost:3000/cards');
-      const data = await response.json();
-      setCards(data);
-      setFilteredCards(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching cards:', error);
-      setMessage('Failed to load cards. Please try again.');
-      setLoading(false);
-    }
-  };
+  // Fetch the card data when the component loads
+  useEffect(() => {
+    const fetchCard = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/cards/${cardId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch card data');
+        }
+        const data = await response.json();
+        setCard(data);
+        setNewCustomerUrl(data.customer_url || ''); // Set the current URL if available
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching card data:', error);
+        setMessage('Failed to fetch card data. Please try again.');
+        setLoading(false);
+      }
+    };
+    fetchCard();
+  }, [cardId]);
 
-  // Filter cards based on the search term (for URL search)
-  const handleSearchChange = (event) => {
-    const searchQuery = event.target.value;
-    setSearchTerm(searchQuery);
-
-    // Filter cards based on the URL
-    const filtered = cards.filter((card) =>
-      card.customer_url && card.customer_url.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    setFilteredCards(filtered);
-  };
-
-  // Update a card's URL
-  const updateCard = async () => {
-    if (!selectedCard || !newCustomerUrl.trim()) {
-      setMessage('Please select a card and enter a valid URL.');
+  // Update the card's URL
+  const handleUpdate = async () => {
+    if (!newCustomerUrl.trim()) {
+      setMessage('Please enter a valid URL.');
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/update/${selectedCard.id}`, {
+      const response = await fetch(`http://localhost:3000/update/${cardId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customerUrl: newCustomerUrl }),
       });
 
       if (response.ok) {
-        setMessage('Card updated successfully!');
+        setMessage('Card URL updated successfully!');
         setNewCustomerUrl(''); // Clear the input
-        fetchCards(); // Refresh the card list
+        navigate('/'); // Redirect to the dashboard
       } else {
         const data = await response.json();
         setMessage(`Error: ${data.error}`);
@@ -78,12 +60,6 @@ const UpdateCard = () => {
     }
   };
 
-  // Fetch cards when the component mounts
-  useEffect(() => {
-    fetchCards();
-  }, []);
-
-  // Show a loading spinner until cards are fetched
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -92,55 +68,29 @@ const UpdateCard = () => {
     );
   }
 
+  if (!card) {
+    return (
+      <Container maxWidth="sm" sx={{ mt: 4 }}>
+        <Typography variant="h4" gutterBottom color="error">
+          Failed to load card data.
+        </Typography>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center' }}>
+      <Typography variant="h4" gutterBottom>
         Update QR Code URL
       </Typography>
 
-      {/* Search Input for filtering cards */}
-      <TextField
-        fullWidth
-        label="Search by Customer URL"
-        variant="outlined"
-        value={searchTerm}
-        onChange={handleSearchChange}
-        sx={{ mb: 3 }}
-      />
-
-      {/* Search results list */}
-      <Box sx={{ maxHeight: 300, overflowY: 'auto', mb: 3 }}>
-        <List>
-          {filteredCards.map((card) => (
-            <ListItem
-              key={card.id}
-              button
-              onClick={() => {
-                setSelectedCard(card);
-                setSearchTerm(card.customer_url); // Set the search term to the selected card's URL
-              }}
-            >
-              <ListItemText
-                primary={card.customer_url}
-                secondary={`Card ID: ${card.id} | Sold: ${card.is_sold ? 'Yes' : 'No'}`}
-              />
-            </ListItem>
-          ))}
-        </List>
+      {/* QR Code Display */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+        <img src={card.qr_code} alt="QR Code" width="150" />
+        <Typography variant="h6" sx={{ mt: 2 }}>Card ID: {card.id}</Typography>
       </Box>
 
-      {/* Selected Card Info */}
-      {selectedCard && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6">Selected Card</Typography>
-          <Typography variant="body1">Card ID: {selectedCard.id}</Typography>
-          <Typography variant="body2" color="textSecondary">
-            Customer URL: {selectedCard.customer_url || 'Not Sold Yet'}
-          </Typography>
-        </Box>
-      )}
-
-      {/* New Customer URL Input */}
+      {/* New Customer URL */}
       <TextField
         fullWidth
         label="New Customer URL"
@@ -152,12 +102,7 @@ const UpdateCard = () => {
 
       {/* Update Button */}
       <Box sx={{ textAlign: 'center', mb: 3 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={updateCard}
-          disabled={!selectedCard || !newCustomerUrl.trim()}
-        >
+        <Button variant="contained" color="primary" onClick={handleUpdate}>
           Update URL
         </Button>
       </Box>
