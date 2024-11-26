@@ -52,7 +52,7 @@ app.post('/generate', async (req, res) => {
 
   try {
     const cardId = `qrm${await getNextSequence()}`;
-    const qrCode = await QRCode.toDataURL(`${process.env.BASE_URL || 'http://localhost:3000'}/redirect/${cardId}`);
+    const qrCode = await QRCode.toDataURL(`${process.env.BASE_URL || 'https://qr-code-manager-q5zd.onrender.com'}/redirect/${cardId}`);
 
     const newCard = new Card({
       id: cardId,
