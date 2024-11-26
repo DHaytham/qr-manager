@@ -29,6 +29,13 @@ const cardSchema = new mongoose.Schema({
 
 const Card = mongoose.model('Card', cardSchema);
 
+let counter = 1;
+const generateCardId = () => {
+  const paddedNumber = String(counter).padStart(6, '0');
+  counter++;
+  return `qrm${paddedNumber}`;
+};
+
 // Routes
 
 // 1. Generate QR Code
@@ -39,7 +46,7 @@ app.post('/generate', async (req, res) => {
     return res.status(400).json({ error: 'Placeholder URL is required' });
   }
 
-  const cardId = `card-${Date.now()}`;
+  const cardId = generateCardId(); // This will generate IDs like qrm000001, qrm000002, etc.
   const qrCode = await QRCode.toDataURL(`http://localhost:3000/redirect/${cardId}`);
 
   const newCard = new Card({
