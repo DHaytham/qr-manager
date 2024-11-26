@@ -1,44 +1,48 @@
+require('dotenv').config();
 const express = require('express');
-const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const QRCode = require('qrcode');
 const cors = require('cors');
+const QRCode = require('qrcode');
+const Card = require('./models/Card');
 
-// Initialize Express app
 const app = express();
-app.use(bodyParser.json());
-app.use(cors());
+const port = process.env.PORT || 3000;
 
-// Connect to MongoDB
+// Middleware
+app.use(express.json());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+
+// MongoDB connection
 mongoose
-  .connect('REDACTED_MONGODB_URI')
+  .connect(process.env.MONGODB_URI || 'REDACTED_MONGODB_URI')
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => {
     console.error('Failed to connect to MongoDB:', err);
-    process.exit(1); // Exit the application if the database connection fails
+    process.exit(1);
   });
 
-// MongoDB Schema and Model
-const cardSchema = new mongoose.Schema({
-  id: { type: String, required: true },
-  placeholder_url: { type: String, required: true },
-  is_sold: { type: Boolean, default: false },
-  customer_url: { type: String, default: null },
-  qr_code: { type: String, required: true }, // Base64 QR code
+// Counter model
+const counterSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  seq: { type: Number, default: 0 }
 });
 
-const Card = mongoose.model('Card', cardSchema);
+const Counter = mongoose.model('Counter', counterSchema);
 
-let counter = 1;
-const generateCardId = () => {
-  const paddedNumber = String(counter).padStart(6, '0');
-  counter++;
-  return `qrm${paddedNumber}`;
+// Get next sequence
+const getNextSequence = async () => {
+  const counter = await Counter.findOneAndUpdate(
+    { _id: 'cardId' },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  return String(counter.seq).padStart(6, '0');
 };
 
 // Routes
-
-// 1. Generate QR Code
 app.post('/generate', async (req, res) => {
   const { placeholderUrl } = req.body;
 
@@ -46,25 +50,24 @@ app.post('/generate', async (req, res) => {
     return res.status(400).json({ error: 'Placeholder URL is required' });
   }
 
-  const cardId = generateCardId(); // This will generate IDs like qrm000001, qrm000002, etc.
-  const qrCode = await QRCode.toDataURL(`http://localhost:3000/redirect/${cardId}`);
-
-  const newCard = new Card({
-    id: cardId,
-    placeholder_url: placeholderUrl,
-    qr_code: qrCode,
-  });
-
   try {
+    const cardId = `qrm${await getNextSequence()}`;
+    const qrCode = await QRCode.toDataURL(`${process.env.BASE_URL || 'http://localhost:3000'}/redirect/${cardId}`);
+
+    const newCard = new Card({
+      id: cardId,
+      placeholder_url: placeholderUrl,
+      qr_code: qrCode,
+    });
+
     await newCard.save();
     res.json(newCard);
   } catch (error) {
-    console.error('Error saving card:', error);
-    res.status(500).json({ error: 'Failed to save card' });
+    console.error('Error generating QR code:', error);
+    res.status(500).json({ error: 'Failed to generate QR code' });
   }
 });
 
-// 2. Get All Cards
 app.get('/cards', async (req, res) => {
   try {
     const cards = await Card.find();
@@ -75,61 +78,9 @@ app.get('/cards', async (req, res) => {
   }
 });
 
-// 3. Update Card's Customer URL
-app.post('/update/:cardId', async (req, res) => {
-  const { cardId } = req.params; // Card ID from the URL
-  const { customerUrl } = req.body; // New customer URL from the request body
-
-  if (!customerUrl) {
-    return res.status(400).json({ error: 'Customer URL is required' });
-  }
-
+app.get('/cards/:id', async (req, res) => {
   try {
-    const card = await Card.findOne({ id: cardId }); // Fetch the card from MongoDB
-    if (!card) {
-      return res.status(404).json({ error: 'Card not found' }); // If card is not found
-    }
-
-    // Update only the customer URL (allow regardless of sold status)
-    card.customer_url = customerUrl;
-
-    // Optionally, mark it as sold if it wasn't sold before
-    if (!card.is_sold) {
-      card.is_sold = true;
-    }
-
-    await card.save(); // Save the updated card back to the database
-    res.json({ success: true, card }); // Respond with the updated card
-  } catch (error) {
-    console.error('Error updating card:', error);
-    res.status(500).json({ error: 'Failed to update card' });
-  }
-});
-
-// 4. Redirect Endpoint (optional)
-app.get('/redirect/:cardId', async (req, res) => {
-  const { cardId } = req.params;
-
-  try {
-    const card = await Card.findOne({ id: cardId });
-    if (!card) {
-      return res.status(404).json({ error: 'Card not found' });
-    }
-
-    const redirectUrl = card.is_sold ? card.customer_url : card.placeholder_url;
-    res.redirect(redirectUrl);
-  } catch (error) {
-    console.error('Error handling redirect:', error);
-    res.status(500).json({ error: 'Failed to handle redirect' });
-  }
-});
-
-// 5. Get a Single Card by ID
-app.get('/cards/:cardId', async (req, res) => {
-  const { cardId } = req.params;
-
-  try {
-    const card = await Card.findOne({ id: cardId });
+    const card = await Card.findOne({ id: req.params.id });
     if (!card) {
       return res.status(404).json({ error: 'Card not found' });
     }
@@ -140,8 +91,45 @@ app.get('/cards/:cardId', async (req, res) => {
   }
 });
 
-// Start Server
-const PORT = process.env.PORT || 3000; // Use Render's provided PORT
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.post('/update/:id', async (req, res) => {
+  const { customerUrl } = req.body;
+  try {
+    const card = await Card.findOneAndUpdate(
+      { id: req.params.id },
+      { customer_url: customerUrl },
+      { new: true }
+    );
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+    res.json(card);
+  } catch (error) {
+    console.error('Error updating card:', error);
+    res.status(500).json({ error: 'Failed to update card' });
+  }
+});
+
+app.get('/redirect/:id', async (req, res) => {
+  try {
+    const card = await Card.findOne({ id: req.params.id });
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+    const redirectUrl = card.customer_url || card.placeholder_url;
+    res.redirect(redirectUrl);
+  } catch (error) {
+    console.error('Error redirecting:', error);
+    res.status(500).json({ error: 'Failed to redirect' });
+  }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// Start server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
