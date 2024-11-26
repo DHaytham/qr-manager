@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import CONFIG from '../config';
 import { Box, Button, TextField, Typography, Container, CircularProgress } from '@mui/material';
 
 const UpdateCard = () => {
@@ -15,7 +16,7 @@ const UpdateCard = () => {
   useEffect(() => {
     const fetchCard = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/cards/${cardId}`);
+        const response = await fetch(`${CONFIG.API_BASE_URL}/cards/${cardId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch card data');
         }
@@ -40,7 +41,7 @@ const UpdateCard = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/update/${cardId}`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/update/${cardId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customerUrl: newCustomerUrl }),

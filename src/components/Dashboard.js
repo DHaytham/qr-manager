@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import CONFIG from '../config';
 import { Link } from 'react-router-dom';
 import {
   Box,
@@ -22,7 +23,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     axios
-      .get('http://localhost:3000/cards')
+      .get(`${CONFIG.API_BASE_URL}/cards`)
       .then((response) => {
         setCards(response.data);
         setLoading(false);

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import CONFIG from '../config';
 import {
   Box,
   Button,
@@ -22,7 +23,7 @@ const GenerateQR = () => {
     setLoading(true);
 
     axios
-      .post('http://localhost:3000/generate', { placeholderUrl })
+      .post(`${CONFIG.API_BASE_URL}/generate`, { placeholderUrl })
       .then((response) => {
         setGeneratedCard(response.data);
         setLoading(false);

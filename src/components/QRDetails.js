@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import CONFIG from '../config';
 import {
   Box,
   Typography,
@@ -27,7 +28,7 @@ const QRDetails = ({ card, onClose }) => {
     }
 
     axios
-      .post(`http://localhost:3000/update/${card.id}`, { customerUrl: newCustomerUrl })
+      .post(`${CONFIG.API_BASE_URL}/update/${card.id}`, { customerUrl: newCustomerUrl })
       .then(() => {
         setMessage('URL updated successfully!');
         setOpenSnackbar(true);
