@@ -18,8 +18,8 @@ services:
     startCommand: node server.js
     envVars:
       - key: MONGODB_URI
-        value: "your-mongodb-connection-string"
+        value: "REDACTED_MONGODB_URI"
       - key: BASE_URL
-        value: "your-backend-url"
+        value: "https://qr-manager-8591.onrender.com"
       - key: FRONTEND_URL
-        value: "your-frontend-url"
+        value: "https://qr-code-manager-q5zd.onrender.com"
