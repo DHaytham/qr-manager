@@ -1,10 +1,25 @@
 services:
-     - type: web
-       name: nfc-card-manager
-       env: static
-       buildCommand: npm run build
-       staticPublishPath: ./build
-       routes:
-         - type: rewrite
-           source: /*
-           destination: /index.html
+  # Your existing frontend service
+  - type: web
+    name: nfc-card-manager
+    env: static
+    buildCommand: npm run build
+    staticPublishPath: ./build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  # New backend service
+  - type: web
+    name: nfc-card-manager-backend
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: MONGODB_URI
+        value: "your-mongodb-connection-string"
+      - key: BASE_URL
+        value: "your-backend-url"
+      - key: FRONTEND_URL
+        value: "your-frontend-url"
