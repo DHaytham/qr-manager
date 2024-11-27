@@ -3,7 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const QRCode = require('qrcode');
-const Card = require('./models/Card');
+const Card = require('./src/models/Card');
 
 const app = express();
 const port = process.env.PORT || 3000;
