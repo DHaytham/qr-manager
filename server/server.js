@@ -16,7 +16,9 @@ app.set('trust proxy', 1);
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'https://qr-manager-client.onrender.com'
+}));
 app.use(helmet());
 app.use(express.json());
 
