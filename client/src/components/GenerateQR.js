@@ -23,7 +23,7 @@ const GenerateQR = () => {
     setLoading(true);
 
     axios
-      .post(`${CONFIG.API_BASE_URL}/generate`, { placeholderUrl })
+      .post(`${CONFIG.API_BASE_URL}/api/generate`, { placeholderUrl })
       .then((response) => {
         console.log('Success:', response.data); 
         setGeneratedCard(response.data);

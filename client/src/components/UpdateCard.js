@@ -6,6 +6,7 @@ import { Box, Button, TextField, Typography, Container, CircularProgress } from 
 const UpdateCard = () => {
   const { cardId } = useParams(); // Get the card ID from the URL params
   const navigate = useNavigate(); // Use useNavigate to redirect after update
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [card, setCard] = useState(null);
   const [newCustomerUrl, setNewCustomerUrl] = useState('');
@@ -16,7 +17,7 @@ const UpdateCard = () => {
   useEffect(() => {
     const fetchCard = async () => {
       try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/cards/${cardId}`);
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/cards/${cardId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch card data');
         }
@@ -35,25 +36,23 @@ const UpdateCard = () => {
 
   // Update the card's URL
   const handleUpdate = async () => {
-    if (!newCustomerUrl.trim()) {
-      setMessage('Please enter a valid URL.');
-      return;
-    }
-
     try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}/update/${cardId}`, {
-        method: 'POST',
+      const response = await fetch(`${CONFIG.API_BASE_URL}/api/cards/${cardId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customerUrl: newCustomerUrl }),
       });
-
+  
       if (response.ok) {
+        const updatedCard = await response.json();
+        console.log('Card updated successfully:', updatedCard);
         setMessage('Card URL updated successfully!');
-        setNewCustomerUrl(''); // Clear the input
-        navigate('/'); // Redirect to the dashboard
+        setNewCustomerUrl('');
+        navigate('/'); // Navigate back to the dashboard or another page
       } else {
         const data = await response.json();
-        setMessage(`Error: ${data.error}`);
+        console.error('Error updating card:', data.message);
+        setMessage(`Error: ${data.message}`);
       }
     } catch (error) {
       console.error('Network error:', error);

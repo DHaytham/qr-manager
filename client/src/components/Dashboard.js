@@ -23,17 +23,17 @@ const Dashboard = () => {
 
   useEffect(() => {
     axios
-      .get(`${CONFIG.API_BASE_URL}/cards`)
+      .get(`${CONFIG.API_BASE_URL}/api/cards`)  // Add /api prefix
       .then((response) => {
+        console.log('Cards response:', response.data); // Debug log
         setCards(response.data);
         setLoading(false);
       })
       .catch((error) => {
-        console.error(error);
+        console.error('Error fetching cards:', error);
         setLoading(false);
       });
   }, []);
-
   // Filter cards based on the card ID
   const filteredCards = cards.filter((card) =>
     card.id.toLowerCase().includes(filter.toLowerCase())

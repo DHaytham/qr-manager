@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const cardSchema = new mongoose.Schema({
   id: { type: String, required: true },
@@ -8,4 +8,4 @@ const cardSchema = new mongoose.Schema({
   qr_code: { type: String, required: true },
 });
 
-export const Card = mongoose.models.Card || mongoose.model('Card', cardSchema);
+module.exports = mongoose.models.Card || mongoose.model('Card', cardSchema);
