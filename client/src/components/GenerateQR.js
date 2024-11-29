@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 
 const GenerateQR = () => {
-  const [placeholderUrl, setPlaceholderUrl] = useState('');
+  const [placeholderUrl, setPlaceholderUrl] = useState('https://www.tictacom.com');
   const [generatedCard, setGeneratedCard] = useState(null);
   const [loading, setLoading] = useState(false);
 
