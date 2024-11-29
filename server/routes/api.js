@@ -73,11 +73,12 @@ router.put('/cards/:id', async (req, res) => {
 // Redirect
 router.get('/r/:id', async (req, res) => {
   try {
-    const card = await Card.findOne({ placeholderUrl: `${req.protocol}://${req.get('host')}/r/${req.params.id}` });
+    const card = await Card.findOne({ id: req.params.id });
     if (!card) {
       return res.status(404).json({ message: 'Card not found' });
     }
-    res.redirect(card.customerUrl || card.placeholderUrl);
+    // Redirect to customerUrl if it exists, otherwise use placeholderUrl
+    res.redirect(card.customer_url || card.placeholder_url);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
