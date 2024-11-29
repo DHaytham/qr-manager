@@ -6,7 +6,6 @@ import { Box, Button, TextField, Typography, Container, CircularProgress } from 
 const UpdateCard = () => {
   const { cardId } = useParams(); // Get the card ID from the URL params
   const navigate = useNavigate(); // Use useNavigate to redirect after update
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [card, setCard] = useState(null);
   const [newCustomerUrl, setNewCustomerUrl] = useState('');
