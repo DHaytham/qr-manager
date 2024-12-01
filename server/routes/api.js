@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const QRCode = require('qrcode');
 const Card = require('../models/Card');
-const CONFIG = require('../config');
+const CONFIG = require('../client/config');
 
 // Generate QR Code
 router.post('/generate', async (req, res) => {
