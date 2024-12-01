@@ -7,7 +7,7 @@ const Card = require('../models/Card');
 router.post('/generate', async (req, res) => {
   try {
     const uniqueId = `card-${Date.now()}`;
-    const placeholderUrl = `https://www.tictacom.com/${uniqueId}`;
+    const placeholderUrl = `${CONFIG.API_BASE_URL}/api/r/${uniqueId}`;
     
     // Generate QR code
     const qrCode = await QRCode.toDataURL(placeholderUrl);
