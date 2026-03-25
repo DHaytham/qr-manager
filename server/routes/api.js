@@ -8,17 +8,19 @@ const CONFIG = require('../config');
 router.post('/generate', async (req, res) => {
   try {
     const uniqueId = `card-${Date.now()}`;
-    const placeholderUrl = `${CONFIG.API_BASE_URL}/api/r/${uniqueId}`;
+    const { customerUrl } = req.body;
+    const redirectUrl = `${CONFIG.API_BASE_URL}/api/r/${uniqueId}`;
     
-    // Generate QR code
-    const qrCode = await QRCode.toDataURL(placeholderUrl);
+    // Generate QR code with the redirect URL
+    const qrCode = await QRCode.toDataURL(redirectUrl);
 
-    const card = new Card({
+    const card = await Card.create({
       id: uniqueId,
-      placeholder_url: placeholderUrl,
+      placeholder_url: redirectUrl,
       qr_code: qrCode,
+      customer_url: customerUrl || null,
+      is_sold: customerUrl ? true : false,
     });
-    await card.save();
     res.status(201).json(card);
   } catch (error) {
     console.error(error);
@@ -29,7 +31,7 @@ router.post('/generate', async (req, res) => {
 // Get all cards
 router.get('/cards', async (req, res) => {
   try {
-    const cards = await Card.find().sort({ createdAt: -1 });
+    const cards = await Card.findAll({ order: [['createdAt', 'DESC']] });
     res.json(cards);
   } catch (err) {
     console.error(err);
@@ -41,7 +43,7 @@ router.get('/cards', async (req, res) => {
 
 router.get('/cards/:id', async (req, res) => {
   try {
-    const card = await Card.findOne({ id: req.params.id });
+    const card = await Card.findOne({ where: { id: req.params.id } });
     if (!card) {
       return res.status(404).json({ message: 'Card not found' });
     }
@@ -55,16 +57,14 @@ router.get('/cards/:id', async (req, res) => {
 // Update card
 router.put('/cards/:id', async (req, res) => {
   try {
-    const card = await Card.findOneAndUpdate(
-      { id: req.params.id },
-      { customer_url: req.body.customerUrl,
-        is_sold: true  // Add this line to set is_sold to true
-      },
-      { new: true }
+    const [updatedRowsCount] = await Card.update(
+      { customer_url: req.body.customerUrl, is_sold: true },
+      { where: { id: req.params.id } }
     );
-    if (!card) {
+    if (updatedRowsCount === 0) {
       return res.status(404).json({ message: 'Card not found' });
     }
+    const card = await Card.findOne({ where: { id: req.params.id } });
     res.json(card);
   } catch (err) {
     console.error(err);
@@ -75,12 +75,16 @@ router.put('/cards/:id', async (req, res) => {
 // Redirect
 router.get('/r/:id', async (req, res) => {
   try {
-    const card = await Card.findOne({ id: req.params.id });
+    const card = await Card.findOne({ where: { id: req.params.id } });
     if (!card) {
       return res.status(404).json({ message: 'Card not found' });
     }
-    // Redirect to customerUrl if it exists, otherwise use placeholderUrl
-    res.redirect(card.customer_url || card.placeholder_url);
+    // Redirect to customerUrl if it exists
+    if (card.customer_url) {
+      res.redirect(card.customer_url);
+    } else {
+      res.status(404).json({ message: 'No URL set for this QR code' });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

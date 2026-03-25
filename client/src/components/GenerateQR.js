@@ -14,19 +14,23 @@ import {
 } from '@mui/material';
 
 const GenerateQR = () => {
-  const [placeholderUrl, setPlaceholderUrl] = useState(CONFIG.DEFAULT_PLACEHOLDER_URL || '');
+  const [customerUrl, setCustomerUrl] = useState('');
   const [generatedCard, setGeneratedCard] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = () => {
-    if (!placeholderUrl.trim()) return; // Prevent empty submissions
+    if (!customerUrl.trim()) {
+      alert('Please enter a website URL');
+      return;
+    }
     setLoading(true);
 
     axios
-      .post(`${CONFIG.API_BASE_URL}/api/generate`, { placeholderUrl })
+      .post(`${CONFIG.API_BASE_URL}/api/generate`, { customerUrl })
       .then((response) => {
         console.log('Success:', response.data); 
         setGeneratedCard(response.data);
+        setCustomerUrl(''); // Clear the input
         setLoading(false);
       })
       .catch((error) => {
@@ -41,15 +45,16 @@ const GenerateQR = () => {
         Generate QR Code
       </Typography>
 
-      {/* Input for Placeholder URL */}
+      {/* Input for Website URL */}
       <Box sx={{ mb: 3 }}>
         <TextField
           fullWidth
-          label="Enter Placeholder URL"
+          label="Enter Website URL"
           variant="outlined"
-          value={placeholderUrl}
-          onChange={(e) => setPlaceholderUrl(e.target.value)}
-          helperText="Enter a temporary URL for the QR code."
+          value={customerUrl}
+          onChange={(e) => setCustomerUrl(e.target.value)}
+          placeholder="https://example.com"
+          helperText="Enter the website URL you want the QR code to link to."
         />
       </Box>
 
@@ -59,7 +64,7 @@ const GenerateQR = () => {
           variant="contained"
           color="primary"
           onClick={handleGenerate}
-          disabled={loading || !placeholderUrl.trim()}
+          disabled={loading || !customerUrl.trim()}
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : 'Generate'}
         </Button>
@@ -77,7 +82,7 @@ const GenerateQR = () => {
           <CardContent>
             <Typography variant="h6">Card ID: {generatedCard.id}</Typography>
             <Typography variant="body2" color="textSecondary">
-              Placeholder URL: {generatedCard.placeholder_url}
+              Links to: {generatedCard.customer_url}
             </Typography>
           </CardContent>
         </Card>

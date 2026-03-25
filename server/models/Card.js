@@ -1,11 +1,30 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const cardSchema = new mongoose.Schema({
-  id: { type: String, required: true },
-  placeholder_url: { type: String, required: true },
-  is_sold: { type: Boolean, default: false },
-  customer_url: { type: String, default: null },
-  qr_code: { type: String, required: true },
+const Card = sequelize.define('Card', {
+  id: {
+    type: DataTypes.STRING,
+    primaryKey: true,
+    allowNull: false,
+  },
+  placeholder_url: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  is_sold: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  customer_url: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  qr_code: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
+}, {
+  timestamps: true,
 });
 
-module.exports = mongoose.models.Card || mongoose.model('Card', cardSchema);
+module.exports = Card;

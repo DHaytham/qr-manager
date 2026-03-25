@@ -1,11 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./config/db');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const { connectDB } = require('./config/db');
 const apiRoutes = require('./routes/api');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
-require('dotenv').config();
 
 const app = express();
 
@@ -17,7 +17,9 @@ connectDB();
 
 // Middleware
 app.use(cors({
-  origin: 'https://qr-manager-client.onrender.com'
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://qr-manager-client.onrender.com'
+    : ['http://localhost:3000', 'http://localhost:5000', /\.ngrok(-free)?\.app$/]
 }));
 app.use(helmet());
 app.use(express.json());
@@ -35,15 +37,13 @@ app.use(limiter);
 // Routes
 app.use('/api', apiRoutes);
 
-// Serve static assets in production
-if (process.env.NODE_ENV === 'production') {
-  // Set static folder
-  app.use(express.static('client/build'));
+// Serve static assets
+app.use(express.static(path.join(__dirname, '../client/build')));
 
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../client', 'build', 'index.html'));
-  });
-}
+// Catch-all route to serve React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build/index.html'));
+});
 
 const PORT = process.env.PORT || 5000;
 
