@@ -2,11 +2,23 @@ const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
 const dbURL = process.env.DATABASE_URL || 'postgresql://username:password@localhost:5432/qr_manager';
-console.log('Using DATABASE_URL:', dbURL);
+const useSsl =
+  /sslmode=require/i.test(dbURL) ||
+  /neon\.tech/i.test(dbURL);
+
+console.log('Using database connection from DATABASE_URL');
 
 const sequelize = new Sequelize(dbURL, {
   dialect: 'postgres',
   logging: false,
+  dialectOptions: useSsl
+    ? {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false,
+        },
+      }
+    : {},
 });
 
 const connectDB = async () => {
