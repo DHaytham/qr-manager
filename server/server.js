@@ -1,65 +1,67 @@
-const express = require('express');
-const cors = require('cors');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
-const { connectDB } = require('./config/db');
-const apiRoutes = require('./routes/api');
+
+const express = require('express');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+const { connectDB } = require('./config/db');
+const { getAdminPassword, DEV_DEFAULT_PASSWORD } = require('./utils/auth');
+const apiRoutes = require('./routes/api');
+const redirectRoutes = require('./routes/redirect');
 
 const app = express();
+const clientBuild = path.join(__dirname, '../client/build');
 
-// Trust proxy setting for rate limiting behind reverse proxies
+// Render (and most hosts) sit behind one proxy; needed for correct client IPs and https URLs.
 app.set('trust proxy', 1);
 
-// Connect Database
-connectDB();
-
-// Middleware
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? 'https://qr-manager-client.onrender.com'
-    : ['http://localhost:3000', 'http://localhost:5000', /\.ngrok(-free)?\.app$/]
-}));
 app.use(helmet());
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Used by Render's health check and the keep-alive ping.
+app.get('/health', (req, res) => res.json({ ok: true }));
 
-app.use(limiter);
+// Public QR redirects (must come before the React catch-all).
+app.use(redirectRoutes);
 
-// Routes
+// Admin API.
 app.use('/api', apiRoutes);
 
-// Serve static assets
-app.use(express.static(path.join(__dirname, '../client/build')));
-
-// Catch-all route to serve React app
+// React app.
+app.use(express.static(clientBuild));
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/build/index.html'));
+  res.sendFile(path.join(clientBuild, 'index.html'), (err) => {
+    if (err) res.status(404).send('Frontend not built. Run "npm run build" first.');
+  });
+});
+
+// Error handler (must be registered last).
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: 'Something went wrong on the server' });
 });
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+async function start() {
+  if (!getAdminPassword()) {
+    console.warn('WARNING: ADMIN_PASSWORD is not set, so nobody can log in to the dashboard.');
+  } else if (!process.env.ADMIN_PASSWORD) {
+    console.warn(`Using the development password "${DEV_DEFAULT_PASSWORD}". Set ADMIN_PASSWORD in .env.`);
+  }
+
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error('Failed to connect to PostgreSQL:', err.message);
+    process.exit(1);
+  }
+
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled promise rejection:', err);
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`);
-  // Close server & exit process
-  server.close(() => process.exit(1));
-});
+start();

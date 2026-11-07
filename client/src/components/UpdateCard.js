@@ -1,116 +1,96 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import CONFIG from '../config';
-import { Box, Button, TextField, Typography, Container, CircularProgress } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Container,
+  TextField,
+  Typography,
+} from '@mui/material';
+import api, { errorMessage } from '../api';
 
 const UpdateCard = () => {
-  const { cardId } = useParams(); // Get the card ID from the URL params
-  const navigate = useNavigate(); // Use useNavigate to redirect after update
+  const { cardId } = useParams();
+  const navigate = useNavigate();
 
   const [card, setCard] = useState(null);
-  const [newCustomerUrl, setNewCustomerUrl] = useState('');
+  const [customerUrl, setCustomerUrl] = useState('');
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  // Fetch the card data when the component loads
   useEffect(() => {
-    const fetchCard = async () => {
-      try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/cards/${cardId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch card data');
-        }
-        const data = await response.json();
+    api
+      .get(`/cards/${cardId}`)
+      .then(({ data }) => {
         setCard(data);
-        setNewCustomerUrl(data.customer_url || ''); // Set the current URL if available
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching card data:', error);
-        setMessage('Failed to fetch card data. Please try again.');
-        setLoading(false);
-      }
-    };
-    fetchCard();
+        setCustomerUrl(data.customer_url || '');
+      })
+      .catch((err) => setError(errorMessage(err, 'Could not load this card.')))
+      .finally(() => setLoading(false));
   }, [cardId]);
 
-  // Update the card's URL
-  const handleUpdate = async () => {
+  const handleSave = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setError('');
     try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/cards/${cardId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerUrl: newCustomerUrl }),
-      });
-  
-      if (response.ok) {
-        const updatedCard = await response.json();
-        console.log('Card updated successfully:', updatedCard);
-        setMessage('Card URL updated successfully!');
-        setNewCustomerUrl('');
-        navigate('/'); // Navigate back to the dashboard or another page
-      } else {
-        const data = await response.json();
-        console.error('Error updating card:', data.message);
-        setMessage(`Error: ${data.message}`);
-      }
-    } catch (error) {
-      console.error('Network error:', error);
-      setMessage('Failed to update card. Please try again.');
+      await api.put(`/cards/${cardId}`, { customerUrl });
+      navigate('/');
+    } catch (err) {
+      setError(errorMessage(err, 'Could not save the card.'));
+      setSaving(false);
     }
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  if (!card) {
-    return (
-      <Container maxWidth="sm" sx={{ mt: 4 }}>
-        <Typography variant="h4" gutterBottom color="error">
-          Failed to load card data.
-        </Typography>
-      </Container>
-    );
-  }
-
   return (
-    <Container maxWidth="sm" sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Update QR Code URL
-      </Typography>
+    <Container maxWidth="sm" sx={{ my: 4 }}>
+      <Button component={Link} to="/" sx={{ mb: 2 }}>
+        ← Back to dashboard
+      </Button>
 
-      {/* QR Code Display */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-        <img src={card.qr_code} alt="QR Code" width="150" />
-        <Typography variant="h6" sx={{ mt: 2 }}>Card ID: {card.id}</Typography>
-      </Box>
+      {!card ? (
+        <Alert severity="error">{error || 'Card not found.'}</Alert>
+      ) : (
+        <>
+          <Typography variant="h4" gutterBottom>
+            Edit card {card.id}
+          </Typography>
 
-      {/* New Customer URL */}
-      <TextField
-        fullWidth
-        label="New Customer URL"
-        value={newCustomerUrl}
-        onChange={(e) => setNewCustomerUrl(e.target.value)}
-        placeholder="Enter new customer URL"
-        sx={{ mb: 3 }}
-      />
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <img src={card.qr_code} alt={`QR code for card ${card.id}`} width="180" />
+          </Box>
 
-      {/* Update Button */}
-      <Box sx={{ textAlign: 'center', mb: 3 }}>
-        <Button variant="contained" color="primary" onClick={handleUpdate}>
-          Update URL
-        </Button>
-      </Box>
-
-      {/* Feedback Message */}
-      {message && (
-        <Typography variant="body1" color={message.includes('successfully') ? 'primary' : 'error'}>
-          {message}
-        </Typography>
+          <Box component="form" onSubmit={handleSave}>
+            <TextField
+              fullWidth
+              label="Website"
+              value={customerUrl}
+              onChange={(e) => setCustomerUrl(e.target.value)}
+              placeholder="https://example.com"
+              helperText="Where scanning this QR code sends people. Leave empty to deactivate it."
+              sx={{ mb: 2 }}
+            />
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+            <Button type="submit" variant="contained" disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </Box>
+        </>
       )}
     </Container>
   );

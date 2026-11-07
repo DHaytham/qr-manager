@@ -1,0 +1,22 @@
+# Render Blueprint: Render reads this to create the web service.
+# Dashboard -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: qr-manager
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # you paste your Neon connection string when creating the service
+      - key: ADMIN_PASSWORD
+        sync: false # you choose the dashboard password when creating the service
+      - key: SESSION_SECRET
+        generateValue: true

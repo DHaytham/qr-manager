@@ -1,36 +1,31 @@
 const { Sequelize } = require('sequelize');
-require('dotenv').config();
 
-const dbURL = process.env.DATABASE_URL || 'postgresql://username:password@localhost:5432/qr_manager';
-const useSsl =
-  /sslmode=require/i.test(dbURL) ||
-  /neon\.tech/i.test(dbURL);
+const dbURL = process.env.DATABASE_URL;
 
-console.log('Using database connection from DATABASE_URL');
+if (!dbURL) {
+  console.error(
+    'DATABASE_URL is not set. Copy .env.example to .env and paste your Neon connection string.'
+  );
+  process.exit(1);
+}
+
+// Hosted Postgres (Neon, Render, Supabase...) needs SSL; a local database usually doesn't.
+const isLocal = /@(localhost|127\.0\.0\.1)(:|\/)/.test(dbURL);
+const useSsl = !isLocal || /sslmode=require/i.test(dbURL);
 
 const sequelize = new Sequelize(dbURL, {
   dialect: 'postgres',
   logging: false,
-  dialectOptions: useSsl
-    ? {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false,
-        },
-      }
-    : {},
+  dialectOptions: useSsl ? { ssl: { require: true, rejectUnauthorized: false } } : {},
+  pool: { max: 5, idle: 10000 },
 });
 
 const connectDB = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('PostgreSQL Connected...');
-    await sequelize.sync(); // Sync models to database
-    console.log('Database synced...');
-  } catch (err) {
-    console.error('Failed to connect to PostgreSQL:', err);
-    process.exit(1);
-  }
+  await sequelize.authenticate();
+  console.log('PostgreSQL connected');
+  // Creates the table if missing and adds/adjusts columns to match the model.
+  await sequelize.sync({ alter: true });
+  console.log('Database ready');
 };
 
 module.exports = { sequelize, connectDB };

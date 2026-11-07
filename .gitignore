@@ -1,25 +1,24 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
-/node_modules
-**/node_modules/
+node_modules/
 /.pnp
-.env
 .pnp.js
 
-# testing
-/coverage
+# build output (created on the server during deploy)
+client/build/
 
-# production
-/build
-
-# misc
-.DS_Store
+# secrets: never commit these
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
+# testing
+/coverage
+
+# misc
+.DS_Store
+.vscode/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -27,5 +26,3 @@ yarn-error.log*
 .ngrok.err
 .server.log
 .server.err
-
-

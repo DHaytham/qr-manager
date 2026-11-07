@@ -1,5 +1,5 @@
 {
-  "name": "nfc-card-manager",
+  "name": "qr-code-manager-client",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -10,15 +10,6 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.7.7",
-    "body-parser": "^1.20.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.1",
-    "fs": "^0.0.1-security",
-    "mongodb": "^6.11.0",
-    "mongoose": "^8.8.2",
-    "qr-code-manager": "file:..",
-    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.0.1",
